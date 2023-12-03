@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "detraffic-pygame-env"
+version = "0.1.0"
+description = "pygame environment to simulate traffic"
+authors = ["Melih DARCAN <57872471+MelihDarcanxyz@users.noreply.github.com>"]
+license = "GPL-3.0-only"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pygame = "^2.5.2"
+catppuccin = "^1.3.2"
+
+[tool.poetry.dev-dependencies]
+# [tool.poetry.group.dev.dependencies]
+
+# [tool.poetry.group.test.dependencies]
+pytest = "^7.4.2"
+
+# [tool.poetry.group.docs.dependencies]
+pdoc3 = "^0.10.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
