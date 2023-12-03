@@ -64,4 +64,4 @@ class Ambulance(Car):
             y (_type_): _description_
         """
         pygame.sprite.Sprite.__init__(self, width, height, x, y)
-        self.image = pygame.image.load('assets/ambulance-car.png')
+        self.image = pygame.image.load('assets/ambulance.png')
