@@ -1,9 +1,10 @@
 
 import pygame
+import math
 
 class Car(pygame.sprite.Sprite):
 
-    def __init__(self, width, height, x, y):
+    def __init__(self, width, height,image, x=0, y=0):
         """_summary_
 
         Args:
@@ -13,8 +14,25 @@ class Car(pygame.sprite.Sprite):
             y (_type_): _description_
         """
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load('assets/car.png')
+        self.image = pygame.image.load(f'assets/{image}.png')
         self.rect = self.image.get_rect()
+        self.rect.topleft = (width, height)
+        self.speed = 5
+        self.border_x = x
+        self.border_y = y
+
+    def move(self, direction):
+        if direction == "UP":
+            self.rect.y -= self.speed
+        elif direction == "DOWN":
+            self.rect.y += self.speed
+        elif direction == "LEFT":
+            self.rect.x -= self.speed
+        elif direction == "RIGHT":
+            self.rect.x += self.speed 
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
 
     def update(self):
         """_summary_
@@ -35,3 +53,8 @@ class Car(pygame.sprite.Sprite):
         (angle,z) = vector
         (dx,dy) = (z*math.cos(angle),z*math.sin(angle))
         return rect.move(dx,dy)
+    
+    def calc_traffic_light(self,intersection):
+        if self.rect.x == intersection.rect.center[0] and self.rect.y == intersection.rect.center[0]:
+            print("traffic light")
+
