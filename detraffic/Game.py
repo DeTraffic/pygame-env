@@ -29,7 +29,7 @@ class Game:
         self.iteration = 0
         self.reset()
 
-    def run(self):
+    def run(self,action):
         while True:
             reward, score, game_over = self.play_step(action)
 

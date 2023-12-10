@@ -83,6 +83,12 @@ class Intersection(pygame.sprite.Sprite):
             "right_waiting": 0,
             "top_waiting": 0,
             "bottom_waiting": 0,
+
+            "left_decay": 0,
+            "right_decay": 0,
+            "top_decay": 0,
+            "bottom_decay": 0,
+
             "left_traffic_light": 0,
             "right_traffic_light": 0,
             "top_traffic_light": 0,
@@ -90,6 +96,107 @@ class Intersection(pygame.sprite.Sprite):
         }
 
         self.decay = 0
+
+    def __car_spawn(self,lane_probability,lane_count,cars_group,lane_count_pos, car_x, car_y, car_direction,cr_dir):
+        if randint(1, 100) > (
+                100 - (lane_probability * 100)
+            ):
+                lane_index = randint(0, lane_count - 1)
+
+                for i in range(lane_count):
+                    i = (i + lane_index) % lane_count
+                    
+                    car = Car(
+                        x=car_x(lane_count_pos,i),
+                        y=car_y(lane_count_pos,i),
+
+                        width=self.lane_width / 2,
+                        height=self.lane_width / 2,
+                        accerelation=0.2,
+                        speed=5,
+                        direction=car_direction,
+                        reward=1,
+                    )
+
+                    if car.rect.collideobjects(cars_group.sprites()):
+                        continue
+
+                    cars_group.add(car)
+                    self.state[cr_dir+"_car_count"] += 1
+                    break
+
+    # ------------------------- Helper Functions -------------------------------------------------------------
+    def __param_plus(self,param,car):
+        # x + car.speed, y,
+        return param + car   
+    
+    def __param_minus(self,param,car):
+        #x - car.speed - 1, y
+        return param - car 
+    
+    def __param_just(self,param,car):
+        #x, y + car.speed
+        return param
+    
+    def __div4(self,lane_count,i):
+        return self.lane_width / 4
+    
+    def __width_div4(self,lane_count,i):
+        return self.width - (3 * self.lane_width / 4)
+    
+    def __height_div4(self,lane_count,i):
+        return self.height - (3 * self.lane_width / 4)
+    
+    def __long_calc1(self,lane_count,i):
+        return self.lane_height + (lane_count * self.lane_width) + (i * self.lane_width) + (self.lane_width / 2) - (self.lane_width / 4)
+    
+    def __long_calc2(self,lane_count,i):
+        return self.lane_height + (i * self.lane_width) + (self.lane_width / 2) - (self.lane_width / 4)
+    # ------------------------- /Helper Functions -------------------------------------------------------------
+    
+
+
+    def __car_control(self,car_group,to_remove,rect_x,rect_y,car_direction):
+        for car in car_group:
+            x, y = car.rect.midright
+
+            if x > self.width:
+                reward += 1
+                self.score += 1
+                to_remove.append(car)
+                continue
+
+            look_ahead_rect = pygame.Rect(rect_x(x,car.speed), rect_y(x,car.speed), 1, 1)
+
+            traffic_light_collision = look_ahead_rect.collideobjects(
+                self.traffic_lights_group.sprites()
+            )
+            if (
+                traffic_light_collision is not None
+                and traffic_light_collision.state == TrafficLightState.RED
+            ):
+                if car.action != VehicleAction.STOP:
+                    self.state[car_direction+"_waiting"] += 1
+                car.update(VehicleAction.STOP)
+                continue
+
+            if look_ahead_rect.collideobjects(car_group.sprites()):
+                if car.action != VehicleAction.STOP:
+                    self.state[car_direction+"_waiting"] += 1
+                car.update(VehicleAction.STOP)
+                continue
+
+            if car.action == VehicleAction.STOP:
+                self.state[car_direction+"_waiting"] -= 1
+
+            car.update(VehicleAction.MOVE)
+
+        for car in to_remove:
+            self.state[car_direction+"_car_count"] -= 1
+            car_group.remove(car)
+
+        to_remove = []
+
 
     def update(self, traffic_light_action):
         now = pygame.time.get_ticks()
@@ -110,6 +217,11 @@ class Intersection(pygame.sprite.Sprite):
                 self.state["bottom_traffic_light"],
             ) = traffic_light_action
 
+            """self.state["left_decay"] = (self.state["left_decay"] + 1) * traffic_light_action[0]
+            self.state["right_decay"] = (self.state["right_decay"] + 1) * traffic_light_action[1] 
+            self.state["top_decay"] = (self.state["top_decay"] + 1) * traffic_light_action[2]
+            self.state["bottom_decay"] = (self.state["bottom_decay"] + 1) * traffic_light_action[3]"""
+
             print(traffic_light_action)
 
             for action, traffic_light in zip(
@@ -120,127 +232,23 @@ class Intersection(pygame.sprite.Sprite):
                 else:
                     traffic_light.update(TrafficLightState.RED)
 
+            # ---------------------------------------------------------------------------
             # Left to right car spawn
-            if randint(1, 100) > (
-                100 - (self.left_to_right_car_spawn_probability * 100)
-            ):
-                lane_index = randint(0, self.left_to_right_lane_count - 1)
-
-                for i in range(self.left_to_right_lane_count):
-                    i = (i + lane_index) % self.left_to_right_lane_count
-
-                    car = Car(
-                        x=self.lane_width / 4,
-                        y=self.lane_height
-                        + (self.right_to_left_lane_count * self.lane_width)
-                        + (i * self.lane_width)
-                        + (self.lane_width / 2)
-                        - (self.lane_width / 4),
-                        width=self.lane_width / 2,
-                        height=self.lane_width / 2,
-                        accerelation=0.2,
-                        speed=5,
-                        direction=Direction.LEFT_TO_RIGHT,
-                        reward=1,
-                    )
-
-                    if car.rect.collideobjects(self.left_cars_group.sprites()):
-                        continue
-
-                    self.left_cars_group.add(car)
-                    self.state["left_car_count"] += 1
-                    break
-
+            self.__car_spawn(self.left_to_right_car_spawn_probability,self.left_to_right_lane_count,self.left_cars_group,
+                             self.right_to_left_lane_count,self.__div4, self.__long_calc1, Direction.LEFT_TO_RIGHT,"left" )
+            # ---------------------------------------------------------------------------        
             # Right to left car spawn
-            if randint(1, 100) > (
-                100 - (self.right_to_left_car_spawn_probability * 100)
-            ):
-                lane_index = randint(0, self.right_to_left_lane_count - 1)
-
-                for i in range(self.right_to_left_lane_count):
-                    i = (i + lane_index) % self.right_to_left_lane_count
-
-                    car = Car(
-                        x=self.width - (3 * self.lane_width / 4),
-                        y=self.lane_height
-                        + (i * self.lane_width)
-                        + (self.lane_width / 2)
-                        - (self.lane_width / 4),
-                        width=self.lane_width / 2,
-                        height=self.lane_width / 2,
-                        accerelation=0.2,
-                        speed=5,
-                        direction=Direction.RIGHT_TO_LEFT,
-                        reward=1,
-                    )
-
-                    if car.rect.collideobjects(self.right_cars_group.sprites()):
-                        continue
-
-                    self.right_cars_group.add(car)
-                    self.state["right_car_count"] += 1
-                    break
-
+            self.__car_spawn(self.right_to_left_car_spawn_probability,self.right_to_left_lane_count,self.right_cars_group, 
+                            None,self.__width_div4,self.__long_calc2,Direction.RIGHT_TO_LEFT,"right")
+            # ---------------------------------------------------------------------------  
             # Top to bottom car spawn
-            if randint(1, 100) > (
-                100 - (self.top_to_bottom_car_spawn_probability * 100)
-            ):
-                lane_index = randint(0, self.top_to_bottom_lane_count - 1)
-
-                for i in range(self.top_to_bottom_lane_count):
-                    i = (i + lane_index) % self.top_to_bottom_lane_count
-
-                    car = Car(
-                        x=self.lane_height
-                        + (i * self.lane_width)
-                        + (self.lane_width / 2)
-                        - (self.lane_width / 4),
-                        y=self.lane_width / 4,
-                        width=self.lane_width / 2,
-                        height=self.lane_width / 2,
-                        accerelation=0.2,
-                        speed=5,
-                        direction=Direction.TOP_TO_BOTTOM,
-                        reward=1,
-                    )
-
-                    if car.rect.collideobjects(self.top_cars_group.sprites()):
-                        continue
-
-                    self.top_cars_group.add(car)
-                    self.state["top_car_count"] += 1
-                    break
-
+            self.__car_spawn(self.top_to_bottom_car_spawn_probability,self.top_to_bottom_lane_count,self.top_cars_group,    
+                             None,self.__long_calc2,self.__div4,Direction.TOP_TO_BOTTOM,"top")
+            # ---------------------------------------------------------------------------  
             # Bottom to top car spawn
-            if randint(1, 100) > (
-                100 - (self.bottom_to_top_car_spawn_probability * 100)
-            ):
-                lane_index = randint(0, self.bottom_to_top_lane_count - 1)
-
-                for i in range(self.bottom_to_top_lane_count):
-                    i = (i + lane_index) % self.bottom_to_top_lane_count
-
-                    car = Car(
-                        x=self.lane_height
-                        + (self.top_to_bottom_lane_count * self.lane_width)
-                        + (i * self.lane_width)
-                        + (self.lane_width / 2)
-                        - (self.lane_width / 4),
-                        y=self.height - (3 * self.lane_width / 4),
-                        width=self.lane_width / 2,
-                        height=self.lane_width / 2,
-                        accerelation=0.2,
-                        speed=5,
-                        direction=Direction.BOTTOM_TO_TOP,
-                        reward=1,
-                    )
-
-                    if car.rect.collideobjects(self.bottom_cars_group.sprites()):
-                        continue
-
-                    self.bottom_cars_group.add(car)
-                    self.state["bottom_car_count"] += 1
-                    break
+            self.__car_spawn(self.bottom_to_top_car_spawn_probability,self.bottom_to_top_lane_count,self.bottom_cars_group,                         
+                             self.top_to_bottom_lane_count,self.__long_calc1,self.__height_div4,Direction.BOTTOM_TO_TOP,"bottom")
+            # ---------------------------------------------------------------------------          
 
         for group_1, group_2 in itertools.combinations(
             (
@@ -260,163 +268,19 @@ class Intersection(pygame.sprite.Sprite):
 
         to_remove = []
 
-        for car in self.left_cars_group:
-            x, y = car.rect.midright
-
-            if x > self.width:
-                reward += 1
-                self.score += 1
-                to_remove.append(car)
-                continue
-
-            look_ahead_rect = pygame.Rect(x + car.speed, y, 1, 1)
-
-            traffic_light_collision = look_ahead_rect.collideobjects(
-                self.traffic_lights_group.sprites()
-            )
-            if (
-                traffic_light_collision is not None
-                and traffic_light_collision.state == TrafficLightState.RED
-            ):
-                if car.action != VehicleAction.STOP:
-                    self.state["left_waiting"] += 1
-                car.update(VehicleAction.STOP)
-                continue
-
-            if look_ahead_rect.collideobjects(self.left_cars_group.sprites()):
-                if car.action != VehicleAction.STOP:
-                    self.state["left_waiting"] += 1
-                car.update(VehicleAction.STOP)
-                continue
-
-            if car.action == VehicleAction.STOP:
-                self.state["left_waiting"] -= 1
-
-            car.update(VehicleAction.MOVE)
-
-        for car in to_remove:
-            self.state["left_car_count"] -= 1
-            self.left_cars_group.remove(car)
-
-        to_remove = []
-
-        for car in self.right_cars_group:
-            x, y = car.rect.midleft
-
-            if x < -(self.lane_width / 2):
-                reward += 1
-                self.score += 1
-                to_remove.append(car)
-                continue
-
-            look_ahead_rect = pygame.Rect(x - car.speed, y, 1, 1)
-
-            traffic_light_collision = look_ahead_rect.collideobjects(
-                self.traffic_lights_group.sprites()
-            )
-            if (
-                traffic_light_collision is not None
-                and traffic_light_collision.state == TrafficLightState.RED
-            ):
-                if car.action != VehicleAction.STOP:
-                    self.state["right_waiting"] += 1
-                car.update(VehicleAction.STOP)
-                continue
-
-            if look_ahead_rect.collideobjects(self.right_cars_group.sprites()):
-                if car.action != VehicleAction.STOP:
-                    self.state["right_waiting"] += 1
-                car.update(VehicleAction.STOP)
-                continue
-
-            if car.action == VehicleAction.STOP:
-                self.state["right_waiting"] -= 1
-
-            car.update(VehicleAction.MOVE)
-
-        for car in to_remove:
-            self.state["right_car_count"] -= 1
-            self.right_cars_group.remove(car)
-
-        to_remove = []
-
-        for car in self.top_cars_group:
-            x, y = car.rect.midbottom
-
-            if y > self.height:
-                reward += 1
-                self.score += 1
-                to_remove.append(car)
-                continue
-
-            look_ahead_rect = pygame.Rect(x, y + car.speed, 1, 1)
-
-            traffic_light_collision = look_ahead_rect.collideobjects(
-                self.traffic_lights_group.sprites()
-            )
-            if (
-                traffic_light_collision is not None
-                and traffic_light_collision.state == TrafficLightState.RED
-            ):
-                if car.action != VehicleAction.STOP:
-                    self.state["top_waiting"] += 1
-                car.update(VehicleAction.STOP)
-                continue
-
-            if look_ahead_rect.collideobjects(self.top_cars_group.sprites()):
-                if car.action != VehicleAction.STOP:
-                    self.state["top_waiting"] += 1
-                car.update(VehicleAction.STOP)
-                continue
-
-            if car.action == VehicleAction.STOP:
-                self.state["top_waiting"] -= 1
-
-            car.update(VehicleAction.MOVE)
-
-        for car in to_remove:
-            self.state["top_car_count"] -= 1
-            self.top_cars_group.remove(car)
-
-        to_remove = []
-
-        for car in self.bottom_cars_group:
-            x, y = car.rect.midtop
-
-            if y < -(self.lane_width / 2):
-                reward += 1
-                self.score += 1
-                to_remove.append(car)
-                continue
-
-            look_ahead_rect = pygame.Rect(x, y - car.speed, 1, 1)
-
-            traffic_light_collision = look_ahead_rect.collideobjects(
-                self.traffic_lights_group.sprites()
-            )
-            if (
-                traffic_light_collision is not None
-                and traffic_light_collision.state == TrafficLightState.RED
-            ):
-                if car.action != VehicleAction.STOP:
-                    self.state["bottom_waiting"] += 1
-                car.update(VehicleAction.STOP)
-                continue
-
-            if look_ahead_rect.collideobjects(self.bottom_cars_group.sprites()):
-                if car.action != VehicleAction.STOP:
-                    self.state["bottom_waiting"] += 1
-                car.update(VehicleAction.STOP)
-                continue
-
-            if car.action == VehicleAction.STOP:
-                self.state["bottom_waiting"] -= 1
-
-            car.update(VehicleAction.MOVE)
-
-        for car in to_remove:
-            self.state["bottom_car_count"] -= 1
-            self.bottom_cars_group.remove(car)
+        #---------------------------------------------------------------------------------
+        # Left Car groups
+        self.__car_control(self.left_cars_group,to_remove,self.__param_plus,self.__param_just,"left")
+        #---------------------------------------------------------------------------------
+        # Right Car groups
+        self.__car_control(self.right_cars_group,to_remove,self.__param_minus,self.__param_just,"right")
+        #---------------------------------------------------------------------------------
+        # Top Car groups
+        self.__car_control(self.top_cars_group,to_remove,self.__param_just,self.__param_minus,"top")
+        #---------------------------------------------------------------------------------
+        # Bottom Car groups
+        self.__car_control(self.bottom_cars_group,to_remove,self.__param_just,self.__param_plus,"bottom")
+        #---------------------------------------------------------------------------------
 
         game_over = False
 
@@ -424,6 +288,11 @@ class Intersection(pygame.sprite.Sprite):
         reward -= self.state['right_waiting'] * (self.decay ** 2)
         reward -= self.state['top_waiting'] * (self.decay ** 2)
         reward -= self.state['bottom_waiting'] * (self.decay ** 2)
+
+        """reward -= self.state['left_waiting'] * (self.state['left_decay'] ** 2)
+        reward -= self.state['right_waiting'] * (self.state['right_decay'] ** 2)
+        reward -= self.state['top_waiting'] * (self.state['top_decay'] ** 2)
+        reward -= self.state['bottom_waiting'] * (self.state['bottom_decay'] ** 2)"""
 
         return reward, self.score, game_over
 
