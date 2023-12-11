@@ -1,4 +1,4 @@
-from detrama import __version__
+from detraffic import __version__
 
 
 def test_version():
