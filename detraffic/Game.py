@@ -13,7 +13,22 @@ class Game:
         GAME_WIDTH,
         GAME_HEIGHT,
         MAX_FPS,
+        lane_width,
+        lane_height,
+        left_to_right_lane_count,
+        right_to_left_lane_count,
+        top_to_bottom_lane_count,
+        bottom_to_top_lane_count,
+        left_to_right_car_spawn_probability,
+        right_to_left_car_spawn_probability,
+        top_to_bottom_car_spawn_probability,
+        bottom_to_top_car_spawn_probability,
+        left_to_right_special_car_spawn_probability,
+        right_to_left_special_car_spawn_probability,
+        top_to_bottom_special_car_spawn_probability,
+        bottom_to_top_special_car_spawn_probability,
         BG_COLOR: tuple = catppuccin.Flavour.mocha().mauve.rgb,
+        
     ):
         self.GAME_WIDTH = GAME_WIDTH
         self.GAME_HEIGHT = GAME_HEIGHT
@@ -25,6 +40,21 @@ class Game:
 
         self.screen = pygame.display.set_mode((self.GAME_WIDTH, self.GAME_HEIGHT))
         self.clock = pygame.time.Clock()
+
+        self.lane_width = lane_width
+        self.lane_height = lane_height
+        self.left_to_right_lane_count = left_to_right_lane_count
+        self.right_to_left_lane_count = right_to_left_lane_count
+        self.top_to_bottom_lane_count = top_to_bottom_lane_count
+        self.bottom_to_top_lane_count = bottom_to_top_lane_count
+        self.left_to_right_car_spawn_probability = left_to_right_car_spawn_probability
+        self.right_to_left_car_spawn_probability = right_to_left_car_spawn_probability
+        self.top_to_bottom_car_spawn_probability = top_to_bottom_car_spawn_probability
+        self.bottom_to_top_car_spawn_probability = bottom_to_top_car_spawn_probability
+        self.left_to_right_special_car_spawn_probability = left_to_right_special_car_spawn_probability
+        self.right_to_left_special_car_spawn_probability = right_to_left_special_car_spawn_probability
+        self.top_to_bottom_special_car_spawn_probability = top_to_bottom_special_car_spawn_probability
+        self.bottom_to_top_special_car_spawn_probability = bottom_to_top_special_car_spawn_probability
 
         self.iteration = 0
         self.reset()
@@ -60,12 +90,16 @@ class Game:
         self.intersection = Intersection(
             x=self.GAME_WIDTH / 2,
             y=self.GAME_HEIGHT / 2,
-            lane_width=30,
-            lane_height=200,
-            left_to_right_lane_count=2,
-            right_to_left_lane_count=1,
-            top_to_bottom_lane_count=1,
-            bottom_to_top_lane_count=1,
+            lane_width=self.lane_width,
+            lane_height=self.lane_height,
+            left_to_right_lane_count=self.left_to_right_lane_count,
+            right_to_left_lane_count=self.right_to_left_lane_count,
+            top_to_bottom_lane_count=self.top_to_bottom_lane_count,
+            bottom_to_top_lane_count=self.bottom_to_top_lane_count,
+            left_to_right_car_spawn_probability=self.left_to_right_car_spawn_probability,
+            right_to_left_car_spawn_probability=self.right_to_left_car_spawn_probability,
+            top_to_bottom_car_spawn_probability=self.top_to_bottom_car_spawn_probability,
+            bottom_to_top_car_spawn_probability=self.bottom_to_top_car_spawn_probability,
         )
 
         background = pygame.Surface((self.GAME_WIDTH, self.GAME_HEIGHT))

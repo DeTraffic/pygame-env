@@ -4,6 +4,7 @@ import catppuccin
 from random import randint
 from Vehicles import Car
 import itertools
+from time import sleep
 
 
 class Intersection(pygame.sprite.Sprite):
@@ -83,13 +84,19 @@ class Intersection(pygame.sprite.Sprite):
             "right_waiting": 0,
             "top_waiting": 0,
             "bottom_waiting": 0,
+            "left_decay": 0,
+            "right_decay": 0,
+            "top_decay": 0,
+            "bottom_decay": 0,
+            "left_center": 0,
+            "right_center": 0,
+            "top_center": 0,
+            "bottom_center": 0,
             "left_traffic_light": 0,
             "right_traffic_light": 0,
             "top_traffic_light": 0,
             "bottom_traffic_light": 0,
         }
-
-        self.decay = 0
 
     def update(self, traffic_light_action):
         now = pygame.time.get_ticks()
@@ -98,27 +105,25 @@ class Intersection(pygame.sprite.Sprite):
         if (now - self.last_time) >= 100:
             self.last_time = now
 
-            if [self.state["left_traffic_light"], self.state["right_traffic_light"], self.state["top_traffic_light"], self.state["bottom_traffic_light"]] == traffic_light_action:
-                self.decay += 1
+            if self.state["left_traffic_light"] == traffic_light_action[0]:
+                self.state["left_decay"] += 1
             else:
-                self.decay = 0
+                self.state["left_decay"] = 0
 
-            (
-                self.state["left_traffic_light"],
-                self.state["right_traffic_light"],
-                self.state["top_traffic_light"],
-                self.state["bottom_traffic_light"],
-            ) = traffic_light_action
+            if self.state["right_traffic_light"] == traffic_light_action[1]:
+                self.state["right_decay"] += 1
+            else:
+                self.state["right_decay"] = 0
 
-            print(traffic_light_action)
+            if self.state["top_traffic_light"] == traffic_light_action[2]:
+                self.state["top_decay"] += 1
+            else:
+                self.state["top_decay"] = 0
 
-            for action, traffic_light in zip(
-                traffic_light_action, self.traffic_lights_group.sprites()
-            ):
-                if action:
-                    traffic_light.update(TrafficLightState.GREEN)
-                else:
-                    traffic_light.update(TrafficLightState.RED)
+            if self.state["bottom_traffic_light"] == traffic_light_action[3]:
+                self.state["bottom_decay"] += 1
+            else:
+                self.state["bottom_decay"] = 0
 
             # Left to right car spawn
             if randint(1, 100) > (
@@ -242,6 +247,20 @@ class Intersection(pygame.sprite.Sprite):
                     self.state["bottom_car_count"] += 1
                     break
 
+        (
+            self.state["left_traffic_light"],
+            self.state["right_traffic_light"],
+            self.state["top_traffic_light"],
+            self.state["bottom_traffic_light"],
+            _,
+        ) = traffic_light_action
+
+        for i in range(4):
+            if traffic_light_action[i]:
+                self.traffic_lights_group.sprites()[i].update(TrafficLightState.GREEN)
+            else:
+                self.traffic_lights_group.sprites()[i].update(TrafficLightState.RED)
+
         for group_1, group_2 in itertools.combinations(
             (
                 self.left_cars_group,
@@ -252,11 +271,22 @@ class Intersection(pygame.sprite.Sprite):
             2,
         ):
             if pygame.sprite.groupcollide(group_1, group_2, False, False):
-                reward -= 20
-                self.score -= 20
+                reward -= 10
+                self.score -= 10
                 game_over = True
 
                 return reward, self.score, game_over
+
+        center_rect = pygame.Rect(
+                    self.lane_height,
+                    self.lane_height,
+                    self.center_width,
+                    self.center_height)
+
+        self.state["left_center"] = len(center_rect.collidelistall(self.left_cars_group.sprites()))
+        self.state["right_center"] = len(center_rect.collidelistall(self.right_cars_group.sprites()))
+        self.state["top_center"] = len(center_rect.collidelistall(self.top_cars_group.sprites()))
+        self.state["bottom_center"] = len(center_rect.collidelistall(self.bottom_cars_group.sprites()))
 
         to_remove = []
 
@@ -309,7 +339,7 @@ class Intersection(pygame.sprite.Sprite):
                 to_remove.append(car)
                 continue
 
-            look_ahead_rect = pygame.Rect(x - car.speed, y, 1, 1)
+            look_ahead_rect = pygame.Rect(x - car.speed - 1, y, 1, 1)
 
             traffic_light_collision = look_ahead_rect.collideobjects(
                 self.traffic_lights_group.sprites()
@@ -389,7 +419,7 @@ class Intersection(pygame.sprite.Sprite):
                 to_remove.append(car)
                 continue
 
-            look_ahead_rect = pygame.Rect(x, y - car.speed, 1, 1)
+            look_ahead_rect = pygame.Rect(x, y - car.speed - 1, 1, 1)
 
             traffic_light_collision = look_ahead_rect.collideobjects(
                 self.traffic_lights_group.sprites()
@@ -420,10 +450,19 @@ class Intersection(pygame.sprite.Sprite):
 
         game_over = False
 
-        reward -= self.state['left_waiting'] * (self.decay ** 2)
-        reward -= self.state['right_waiting'] * (self.decay ** 2)
-        reward -= self.state['top_waiting'] * (self.decay ** 2)
-        reward -= self.state['bottom_waiting'] * (self.decay ** 2)
+        reward -= self.state["left_waiting"] * (
+            max(0, self.state["left_decay"] / 60) ** 2
+        )
+        reward -= self.state["right_waiting"] * (
+            max(0, self.state["right_decay"] / 60) ** 2
+        )
+        reward -= self.state["top_waiting"] * (max(0, self.state["top_decay"] / 60) ** 2)
+        reward -= self.state["bottom_waiting"] * (
+            max(0, self.state["bottom_decay"] / 60) ** 2
+        )
+
+        print("Reward:", reward)
+        print(self.state)
 
         return reward, self.score, game_over
 

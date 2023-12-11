@@ -5,14 +5,23 @@ import torch.nn.functional as F
 import os
 
 class Linear_QNet(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size: list, output_size):
         super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, output_size)
+        self.layers = []
+
+        self.layers.append(nn.Linear(input_size, hidden_size[0]))
+
+        for i in range(len(hidden_size) - 1):
+            self.layers.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
+
+        self.layers.append(nn.Linear(hidden_size[-1], output_size))
+
+        self.layers = nn.ModuleList(self.layers)
 
     def forward(self, x):
-        x = F.relu(self.linear1(x))
-        x = self.linear2(x)
+        for layer in self.layers[:-1]:
+            x = F.relu(layer(x))
+        x = self.layers[-1](x)
         return x
 
     def save(self, file_name='model.pth'):

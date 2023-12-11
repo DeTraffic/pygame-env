@@ -46,7 +46,10 @@ class Car(pygame.sprite.Sprite):
     def update(self, action: "VehicleAction"):
 
         if action == VehicleAction.STOP:
+            self.action = VehicleAction.STOP
             return
+        else:
+            self.action = VehicleAction.MOVE
 
         match self.direction:
             case Direction.LEFT_TO_RIGHT:
