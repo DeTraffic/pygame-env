@@ -104,8 +104,8 @@ def train(
     agent = Agent()
     game = IntersectionGame(
         "detraffic-pygame-env",
-        1800,
-        1000,
+        900,
+        700,
         144,
         int(lane_width),
         int(lane_height),
@@ -160,4 +160,4 @@ def train(
 
 
 if __name__ == "__main__":
-    train(20,20)
+    train()
