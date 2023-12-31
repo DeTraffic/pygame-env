@@ -13,7 +13,6 @@ torch = "^2.1.1"
 torchvision = "^0.16.1"
 matplotlib = "^3.8.2"
 ipython = "^8.18.1"
-gradio = "^4.8.0"
 
 [tool.poetry.dev-dependencies]
 # [tool.poetry.group.dev.dependencies]

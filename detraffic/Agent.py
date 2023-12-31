@@ -2,7 +2,8 @@ import torch
 import random
 import numpy as np
 from collections import deque
-from Game import Game
+#from Game import Game
+from IntersectionGame import IntersectionGame
 from Model import Linear_QNet, QTrainer
 from helper import plot
 
@@ -21,7 +22,7 @@ class Agent:
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, game):
-        state = game.intersection.state
+        state = game.state
 
         state = [
             state["left_car_count"],
@@ -83,25 +84,25 @@ class Agent:
 def train(
     lane_width,
     lane_height,
-    left_to_right_lane_count,
-    right_to_left_lane_count,
-    top_to_bottom_lane_count,
-    bottom_to_top_lane_count,
-    left_to_right_car_spawn_probability,
-    right_to_left_car_spawn_probability,
-    top_to_bottom_car_spawn_probability,
-    bottom_to_top_car_spawn_probability,
-    left_to_right_special_car_spawn_probability,
-    right_to_left_special_car_spawn_probability,
-    top_to_bottom_special_car_spawn_probability,
-    bottom_to_top_special_car_spawn_probability,
+    left_to_right_lane_count: int = 1,
+    right_to_left_lane_count: int = 1,
+    top_to_bottom_lane_count: int = 1,
+    bottom_to_top_lane_count: int = 1,
+    left_to_right_car_spawn_probability: float = 0.6,
+    right_to_left_car_spawn_probability: float = 0.6,
+    top_to_bottom_car_spawn_probability: float = 0.6,
+    bottom_to_top_car_spawn_probability: float = 0.6,
+    left_to_right_special_car_spawn_probability: float = 0.05,
+    right_to_left_special_car_spawn_probability: float = 0.05,
+    top_to_bottom_special_car_spawn_probability: float = 0.05,
+    bottom_to_top_special_car_spawn_probability: float = 0.05,
 ):
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
     record = 0
     agent = Agent()
-    game = Game(
+    game = IntersectionGame(
         "detraffic-pygame-env",
         900,
         700,
