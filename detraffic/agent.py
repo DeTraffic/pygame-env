@@ -6,9 +6,9 @@ import random
 from collections import deque
 import torch
 import numpy as np
-from detraffic.intersection_game import IntersectionGame
-from detraffic.model import Linear_QNet, QTrainer
-from detraffic.helper import plot
+from intersection_game import IntersectionGame
+from model import Linear_QNet, QTrainer
+from helper import plot
 
 MAX_MEMORY = 1_000_000
 BATCH_SIZE = 64
@@ -21,8 +21,16 @@ class Agent:
         self.epsilon = epsilon  # randomness
         self.gamma = gamma  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
-        self.model = Linear_QNet(20, [1024, 64, 64], 5)
-        self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+
+        self.model1 = Linear_QNet(20, [1024, 64, 64], 2)
+        self.trainer1 = QTrainer(self.model1, lr=LR, gamma=self.gamma)
+
+        self.model2 = Linear_QNet(20, [1024, 64, 64], 2)
+        self.trainer2 = QTrainer(self.model2, lr=LR, gamma=self.gamma)
+        self.model3 = Linear_QNet(20, [1024, 64, 64], 2)
+        self.trainer3 = QTrainer(self.model3, lr=LR, gamma=self.gamma)
+        self.model4 = Linear_QNet(20, [1024, 64, 64], 2)
+        self.trainer4 = QTrainer(self.model4, lr=LR, gamma=self.gamma)
 
     def get_state(self, game):
         state = game.state
@@ -64,12 +72,18 @@ class Agent:
             mini_sample = self.memory
 
         states, actions, rewards, next_states, game_overs = zip(*mini_sample)
-        self.trainer.train_step(states, actions, rewards, next_states, game_overs)
+        self.trainer1.train_step(states, actions, rewards, next_states, game_overs,0)
+        self.trainer2.train_step(states, actions, rewards, next_states, game_overs,1)
+        self.trainer3.train_step(states, actions, rewards, next_states, game_overs,2)
+        self.trainer4.train_step(states, actions, rewards, next_states, game_overs,3)
         # for state, action, reward, nexrt_state, game_over in mini_sample:
         #    self.trainer.train_step(state, action, reward, next_state, game_over)
 
     def train_short_memory(self, state, action, reward, next_state, game_over):
-        self.trainer.train_step(state, action, reward, next_state, game_over)
+        self.trainer1.train_step(state, action, reward, next_state, game_over,0)
+        self.trainer2.train_step(state, action, reward, next_state, game_over,1)
+        self.trainer3.train_step(state, action, reward, next_state, game_over,2)
+        self.trainer4.train_step(state, action, reward, next_state, game_over,3)
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
@@ -79,9 +93,27 @@ class Agent:
             final_move[move] = 1
         else:
             state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model(state0)
+            prediction = self.model1(state0)
             move = torch.argmax(prediction).item()
-            final_move[move] = 1
+            final_move[0] = move
+
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = self.model2(state0)
+            print(prediction)
+            move = torch.argmax(prediction).item()
+            final_move[1] = move
+
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = self.model3(state0)
+            print(prediction)
+            move = torch.argmax(prediction).item()
+            final_move[2] = move
+
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = self.model4(state0)
+            print(prediction)
+            move = torch.argmax(prediction).item()
+            final_move[3] = move
 
         # print(final_move)
 
@@ -155,7 +187,10 @@ def train(
 
             if score > record:
                 record = score
-                agent.model.save()
+                agent.model1.save()
+                agent.model2.save()
+                agent.model3.save()
+                agent.model4.save()
 
             # print("Game", agent.n_games, "Score", score, "Record:", record)
 

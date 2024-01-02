@@ -3,7 +3,7 @@ FILL ME
 """
 
 import gradio as gr
-from detraffic.agent import train
+from agent import train
 
 demo = gr.Interface(
     fn=train,

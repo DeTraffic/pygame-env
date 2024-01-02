@@ -6,9 +6,9 @@ import itertools
 from random import randint
 from sys import exit
 import pygame
-from detraffic.vehicles import Car
-from detraffic.enums import VehicleAction, Direction, TrafficLightState
-from detraffic.building_blocks import Road, TrafficLight
+from vehicles import Car
+from enums import VehicleAction, Direction, TrafficLightState
+from building_blocks import Road, TrafficLight
 
 import catppuccin
 

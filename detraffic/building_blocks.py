@@ -4,7 +4,7 @@ FILL ME
 
 import pygame
 import catppuccin
-from detraffic.enums import Direction, TrafficLightState
+from enums import Direction, TrafficLightState
 
 class Road(pygame.sprite.Sprite):
     def __init__(
