@@ -1,5 +1,9 @@
+"""
+FILL ME
+"""
+
 import pygame
-from Enums import VehicleAction, Direction
+from detraffic.enums import VehicleAction, Direction
 
 import catppuccin
 

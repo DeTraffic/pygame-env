@@ -1,8 +1,12 @@
+"""
+FILL ME
+"""
+
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-import os
 
 class Linear_QNet(nn.Module):
     def __init__(self, input_size, hidden_size: list, output_size):
@@ -21,7 +25,7 @@ class Linear_QNet(nn.Module):
     def forward(self, x):
         for layer in self.layers[:-1]:
             x = F.relu(layer(x))
-        x = self.layers[-1](x)
+        x = F.softmax(self.layers[-1](x))
         return x
 
     def save(self, file_name='model.pth'):

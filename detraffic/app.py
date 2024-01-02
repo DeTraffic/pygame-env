@@ -1,5 +1,9 @@
+"""
+FILL ME
+"""
+
 import gradio as gr
-from Agent import train
+from detraffic.agent import train
 
 demo = gr.Interface(
     fn=train,

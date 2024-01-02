@@ -1,14 +1,17 @@
-import torch
+"""
+FILL ME
+"""
+
 import random
-import numpy as np
 from collections import deque
-#from Game import Game
-from IntersectionGame import IntersectionGame
-from Model import Linear_QNet, QTrainer
-from helper import plot
+import torch
+import numpy as np
+from detraffic.intersection_game import IntersectionGame
+from detraffic.model import Linear_QNet, QTrainer
+from detraffic.helper import plot
 
 MAX_MEMORY = 1_000_000
-BATCH_SIZE = 1000
+BATCH_SIZE = 64
 LR = 0.001
 
 
@@ -18,7 +21,7 @@ class Agent:
         self.epsilon = epsilon  # randomness
         self.gamma = gamma  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
-        self.model = Linear_QNet(16, [128, 16], 5)
+        self.model = Linear_QNet(20, [1024, 64, 64], 5)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, game):
@@ -33,14 +36,18 @@ class Agent:
             state["right_waiting"],
             state["top_waiting"],
             state["bottom_waiting"],
-            state["left_decay"],
-            state["right_decay"],
-            state["top_decay"],
-            state["bottom_decay"],
             state["left_center"],
             state["right_center"],
             state["top_center"],
             state["bottom_center"],
+            state["left_open"],
+            state["right_open"],
+            state["top_open"],
+            state["bottom_open"],
+            state["left_close"],
+            state["right_close"],
+            state["top_close"],
+            state["bottom_close"],
         ]
 
         return np.array(state, dtype=int)
@@ -76,14 +83,14 @@ class Agent:
             move = torch.argmax(prediction).item()
             final_move[move] = 1
 
-        print(final_move)
+        # print(final_move)
 
         return final_move
 
 
 def train(
-    lane_width,
-    lane_height,
+    lane_width: int = 30,
+    lane_height: int = 200,
     left_to_right_lane_count: int = 1,
     right_to_left_lane_count: int = 1,
     top_to_bottom_lane_count: int = 1,
@@ -106,7 +113,7 @@ def train(
         "detraffic-pygame-env",
         900,
         700,
-        144,
+        0,
         int(lane_width),
         int(lane_height),
         int(left_to_right_lane_count),
@@ -150,7 +157,7 @@ def train(
                 record = score
                 agent.model.save()
 
-            print("Game", agent.n_games, "Score", score, "Record:", record)
+            # print("Game", agent.n_games, "Score", score, "Record:", record)
 
             plot_scores.append(score)
             total_score += score

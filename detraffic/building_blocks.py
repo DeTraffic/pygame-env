@@ -1,7 +1,10 @@
+"""
+FILL ME
+"""
+
 import pygame
-from Enums import Direction, TrafficLightState
 import catppuccin
-from time import sleep
+from detraffic.enums import Direction, TrafficLightState
 
 class Road(pygame.sprite.Sprite):
     def __init__(
