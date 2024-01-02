@@ -9,6 +9,7 @@ import pygame
 from vehicles import Car
 from enums import VehicleAction, Direction, TrafficLightState
 from building_blocks import Road, TrafficLight
+import random
 
 import catppuccin
 
@@ -149,10 +150,12 @@ class IntersectionGame(pygame.sprite.Sprite):
         car_x,
         car_y,
         car_direction,
-        cr_dir,
+        reward
     ):
         if randint(1, 100) > (100 - (lane_probability * 100)):
             lane_index = randint(0, lane_count - 1)
+
+            is_special = random.randint(0,10) > 8
 
             for i in range(lane_count):
                 i = (i + lane_index) % lane_count
@@ -165,10 +168,13 @@ class IntersectionGame(pygame.sprite.Sprite):
                     accerelation=0.2,
                     speed=5,
                     direction=car_direction,
-                    reward=1,
+                    reward=5 if is_special else 1,
+                    color= catppuccin.Flavour.mocha().blue.rgb if is_special else catppuccin.Flavour.mocha().green.rgb
+
                 )
 
                 if car.rect.collideobjects(cars_group.sprites()):
+                    reward -= 10
                     continue
 
                 cars_group.add(car)
@@ -383,7 +389,7 @@ class IntersectionGame(pygame.sprite.Sprite):
                 self.__div4,
                 self.__long_calc1,
                 Direction.LEFT_TO_RIGHT,
-                "left",
+                reward
             )
             # ---------------------------------------------------------------------------
             # Right to left car spawn
@@ -395,7 +401,7 @@ class IntersectionGame(pygame.sprite.Sprite):
                 self.__width_div4,
                 self.__long_calc2,
                 Direction.RIGHT_TO_LEFT,
-                "right",
+                reward
             )
             # ---------------------------------------------------------------------------
             # Top to bottom car spawn
@@ -407,7 +413,7 @@ class IntersectionGame(pygame.sprite.Sprite):
                 self.__long_calc2,
                 self.__div4,
                 Direction.TOP_TO_BOTTOM,
-                "top",
+                reward
             )
             # ---------------------------------------------------------------------------
             # Bottom to top car spawn
@@ -419,7 +425,7 @@ class IntersectionGame(pygame.sprite.Sprite):
                 self.__long_calc1,
                 self.__height_div4,
                 Direction.BOTTOM_TO_TOP,
-                "bottom",
+                reward
             )
             # ---------------------------------------------------------------------------
 
