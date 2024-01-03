@@ -22,12 +22,11 @@ class Agent:
         self.gamma = gamma  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
 
-        self.model1 = Linear_QNet(20, [1024, 64, 64], 2)
-        self.model2 = Linear_QNet(20, [1024, 64, 64], 2)
-        self.model3 = Linear_QNet(20, [1024, 64, 64], 2)
-        self.model4 = Linear_QNet(20, [1024, 64, 64], 2)
-        self.model5 = Linear_QNet(20, [1024, 64, 64], 2)
-        self.trainer = QTrainer([self.model1,self.model2,self.model3,self.model4,self.model5], lr=LR, gamma=self.gamma)
+        self.model1 = Linear_QNet(24, [1024, 64, 64], 2)
+        self.model2 = Linear_QNet(24, [1024, 64, 64], 2)
+        self.model3 = Linear_QNet(24, [1024, 64, 64], 2)
+        self.model4 = Linear_QNet(24, [1024, 64, 64], 2)
+        self.trainer = QTrainer([self.model1,self.model2,self.model3,self.model4], lr=LR, gamma=self.gamma)
 
     def get_state(self, game):
         state = game.state
@@ -53,6 +52,10 @@ class Agent:
             state["right_close"],
             state["top_close"],
             state["bottom_close"],
+            state["left_full"],
+            state["right_full"],
+            state["top_full"],
+            state["bottom_full"],
         ]
 
         return np.array(state, dtype=int)
@@ -79,10 +82,9 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        final_move = [0, 0, 0, 0, 0]
+        final_move = [0, 0, 0, 0]
         if random.randint(1, 200) <= self.epsilon:
-            move = random.randint(0, len(final_move) - 1)
-            final_move[move] = 1
+            final_move = [random.randint(0, 1) for i in range(len(final_move))]
         else:
             state0 = torch.tensor(state, dtype=torch.float)
 
@@ -101,10 +103,6 @@ class Agent:
             prediction = self.model4(state0)
             move = torch.argmax(prediction).item()
             final_move[3] = move
-
-            prediction = self.model5(state0)
-            move = torch.argmax(prediction).item()
-            final_move[4] = move
 
         # print(final_move)
 

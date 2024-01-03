@@ -68,15 +68,14 @@ class QTrainer:
             pred1 = self.models[1](state)
             pred2 = self.models[2](state)
             pred3 = self.models[3](state)
-            pred4 = self.models[4](state)
-            
+
             pred = torch.tensor([torch.argmax(pred0),torch.argmax(pred1),
-                                torch.argmax(pred2),torch.argmax(pred3),torch.argmax(pred4)], dtype=torch.float32, requires_grad=True)
+                                torch.argmax(pred2),torch.argmax(pred3)], dtype=torch.float32, requires_grad=True)
             preds.append(torch.argmax(pred))
             target = pred.clone()
             Q_new = reward[idx]
             if not done[idx]:
-                for md in range(5):
+                for md in range(4):
                     Q_new = reward[idx] + (self.gamma * torch.max(self.models[md](next_state[idx])) )
                     
                     target[md] = Q_new #torch.argmax(action[idx]).item()
