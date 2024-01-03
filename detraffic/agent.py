@@ -89,19 +89,19 @@ class Agent:
             state0 = torch.tensor(state, dtype=torch.float)
 
             prediction = self.model1(state0)
-            move = torch.argmax(prediction).item()
+            move = torch.argmax(prediction)
             final_move[0] = move
 
             prediction = self.model2(state0)
-            move = torch.argmax(prediction).item()
+            move = torch.argmax(prediction)
             final_move[1] = move
 
             prediction = self.model3(state0)
-            move = torch.argmax(prediction).item()
+            move = torch.argmax(prediction)
             final_move[2] = move
 
             prediction = self.model4(state0)
-            move = torch.argmax(prediction).item()
+            move = torch.argmax(prediction)
             final_move[3] = move
 
         # print(final_move)
