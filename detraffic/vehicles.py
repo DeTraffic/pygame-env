@@ -3,7 +3,7 @@ FILL ME
 """
 
 import pygame
-from detraffic.enums import VehicleAction, Direction
+from enums import VehicleAction, Direction
 
 import catppuccin
 

@@ -6,9 +6,10 @@ import itertools
 from random import randint
 from sys import exit
 import pygame
-from detraffic.vehicles import Car
-from detraffic.enums import VehicleAction, Direction, TrafficLightState
-from detraffic.building_blocks import Road, TrafficLight
+from vehicles import Car
+from enums import VehicleAction, Direction, TrafficLightState
+from building_blocks import Road, TrafficLight
+import random
 
 import catppuccin
 
@@ -110,32 +111,7 @@ class IntersectionGame(pygame.sprite.Sprite):
         self.last_time = pygame.time.get_ticks()
 
         self.score = 0
-        self.state = {
-            "left_car_count": 0,
-            "right_car_count": 0,
-            "top_car_count": 0,
-            "bottom_car_count": 0,
-            "left_waiting": 0,
-            "right_waiting": 0,
-            "top_waiting": 0,
-            "bottom_waiting": 0,
-            "left_center": 0,
-            "right_center": 0,
-            "top_center": 0,
-            "bottom_center": 0,
-            "left_traffic_light": 0,
-            "right_traffic_light": 0,
-            "top_traffic_light": 0,
-            "bottom_traffic_light": 0,
-            "left_open": 0,
-            "right_open": 0,
-            "top_open": 0,
-            "bottom_open": 0,
-            "left_close": 0,
-            "right_close": 0,
-            "top_close": 0,
-            "bottom_close": 0,
-        }
+        self._init_state()
 
         self.iteration = 0
         self.reset()
@@ -143,16 +119,21 @@ class IntersectionGame(pygame.sprite.Sprite):
     def __car_spawn(
         self,
         lane_probability,
+        lane_special_probability,
         lane_count,
         cars_group,
         lane_count_pos,
         car_x,
         car_y,
         car_direction,
-        cr_dir,
+        reward
     ):
         if randint(1, 100) > (100 - (lane_probability * 100)):
             lane_index = randint(0, lane_count - 1)
+
+            is_special = randint(1, 100) > (100 - (lane_special_probability * 100))
+
+            lane_full = True
 
             for i in range(lane_count):
                 i = (i + lane_index) % lane_count
@@ -165,14 +146,45 @@ class IntersectionGame(pygame.sprite.Sprite):
                     accerelation=0.2,
                     speed=5,
                     direction=car_direction,
-                    reward=1,
+                    reward=5 if is_special else 1,
+                    color= catppuccin.Flavour.mocha().blue.rgb if is_special else catppuccin.Flavour.mocha().green.rgb
+
                 )
 
                 if car.rect.collideobjects(cars_group.sprites()):
                     continue
 
                 cars_group.add(car)
+                lane_full = False
                 break
+
+            if lane_full:
+                match car_direction:
+                    case Direction.LEFT_TO_RIGHT:
+                        self.state["left_full"] = 1
+                        reward -= car.reward * (self.state['left_close'] / 60)
+                    case Direction.RIGHT_TO_LEFT:
+                        self.state["right_full"] = 1
+                        reward -= car.reward * (self.state['right_close'] / 60)
+                    case Direction.TOP_TO_BOTTOM:
+                        self.state["top_full"] = 1
+                        reward -= car.reward * (self.state['top_close'] / 60)
+                    case Direction.BOTTOM_TO_TOP:
+                        self.state["bottom_full"] = 1
+                        reward -= car.reward * (self.state['bottom_close'] / 60)
+                
+            else:
+                match car_direction:
+                    case Direction.LEFT_TO_RIGHT:
+                        self.state["left_full"] = 0
+                    case Direction.RIGHT_TO_LEFT:
+                        self.state["right_full"] = 0
+                    case Direction.TOP_TO_BOTTOM:
+                        self.state["top_full"] = 0
+                    case Direction.BOTTOM_TO_TOP:
+                        self.state["bottom_full"] = 0
+
+
 
     # ------------------------- Helper Functions -------------------------------------------------------------
     def __param_plus(self, param, car):
@@ -377,49 +389,53 @@ class IntersectionGame(pygame.sprite.Sprite):
             # Left to right car spawn
             self.__car_spawn(
                 self.left_to_right_car_spawn_probability,
+                self.left_to_right_special_car_spawn_probability,
                 self.left_to_right_lane_count,
                 self.left_cars_group,
                 self.right_to_left_lane_count,
                 self.__div4,
                 self.__long_calc1,
                 Direction.LEFT_TO_RIGHT,
-                "left",
+                reward
             )
             # ---------------------------------------------------------------------------
             # Right to left car spawn
             self.__car_spawn(
                 self.right_to_left_car_spawn_probability,
+                self.right_to_left_special_car_spawn_probability,
                 self.right_to_left_lane_count,
                 self.right_cars_group,
                 self.left_to_right_lane_count,
                 self.__width_div4,
                 self.__long_calc2,
                 Direction.RIGHT_TO_LEFT,
-                "right",
+                reward
             )
             # ---------------------------------------------------------------------------
             # Top to bottom car spawn
             self.__car_spawn(
                 self.top_to_bottom_car_spawn_probability,
+                self.top_to_bottom_special_car_spawn_probability,
                 self.top_to_bottom_lane_count,
                 self.top_cars_group,
                 self.bottom_to_top_lane_count,
                 self.__long_calc2,
                 self.__div4,
                 Direction.TOP_TO_BOTTOM,
-                "top",
+                reward
             )
             # ---------------------------------------------------------------------------
             # Bottom to top car spawn
             self.__car_spawn(
                 self.bottom_to_top_car_spawn_probability,
+                self.bottom_to_top_special_car_spawn_probability,
                 self.bottom_to_top_lane_count,
                 self.bottom_cars_group,
                 self.top_to_bottom_lane_count,
                 self.__long_calc1,
                 self.__height_div4,
                 Direction.BOTTOM_TO_TOP,
-                "bottom",
+                reward
             )
             # ---------------------------------------------------------------------------
 
@@ -428,7 +444,6 @@ class IntersectionGame(pygame.sprite.Sprite):
             self.state["right_traffic_light"],
             self.state["top_traffic_light"],
             self.state["bottom_traffic_light"],
-            _,
         ) = traffic_light_action
 
         for i in range(4):
@@ -447,7 +462,7 @@ class IntersectionGame(pygame.sprite.Sprite):
             2,
         ):
             if pygame.sprite.groupcollide(group_1, group_2, False, False):
-                reward -= 10
+                reward -= 20
                 # self.score -= 10
                 game_over = True
 
@@ -643,6 +658,38 @@ class IntersectionGame(pygame.sprite.Sprite):
         self.traffic_lights_group.add(top_traffic_light)
         self.traffic_lights_group.add(bot_traffic_light)
 
+    def _init_state(self):
+        self.state = {
+            "left_car_count": 0,
+            "right_car_count": 0,
+            "top_car_count": 0,
+            "bottom_car_count": 0,
+            "left_waiting": 0,
+            "right_waiting": 0,
+            "top_waiting": 0,
+            "bottom_waiting": 0,
+            "left_center": 0,
+            "right_center": 0,
+            "top_center": 0,
+            "bottom_center": 0,
+            "left_traffic_light": 0,
+            "right_traffic_light": 0,
+            "top_traffic_light": 0,
+            "bottom_traffic_light": 0,
+            "left_open": 0,
+            "right_open": 0,
+            "top_open": 0,
+            "bottom_open": 0,
+            "left_close": 0,
+            "right_close": 0,
+            "top_close": 0,
+            "bottom_close": 0,
+            "left_full": 0,
+            "right_full": 0,
+            "top_full": 0,
+            "bottom_full": 0,
+        }
+
     def run(self):
         while True:
             reward, score, game_over = self.play_step(action)
@@ -683,32 +730,7 @@ class IntersectionGame(pygame.sprite.Sprite):
         self.frame_iteration = 0
         self.score = 0
 
-        self.state = {
-            "left_car_count": 0,
-            "right_car_count": 0,
-            "top_car_count": 0,
-            "bottom_car_count": 0,
-            "left_waiting": 0,
-            "right_waiting": 0,
-            "top_waiting": 0,
-            "bottom_waiting": 0,
-            "left_center": 0,
-            "right_center": 0,
-            "top_center": 0,
-            "bottom_center": 0,
-            "left_traffic_light": 0,
-            "right_traffic_light": 0,
-            "top_traffic_light": 0,
-            "bottom_traffic_light": 0,
-            "left_open": 0,
-            "right_open": 0,
-            "top_open": 0,
-            "bottom_open": 0,
-            "left_close": 0,
-            "right_close": 0,
-            "top_close": 0,
-            "bottom_close": 0,
-        }
+        self._init_state()
 
     def reward(self):
         pass

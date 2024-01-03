@@ -38,11 +38,11 @@ class Linear_QNet(nn.Module):
 
 
 class QTrainer:
-    def __init__(self, model, lr, gamma):
+    def __init__(self, models : list, lr, gamma):
         self.lr = lr
         self.gamma = gamma
-        self.model = model
-        self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
+        self.models = models
+        self.optimizer = optim.Adam(models[0].parameters(), lr=self.lr)
         self.criterion = nn.MSELoss()
 
     def train_step(self, state, action, reward, next_state, done):
@@ -60,22 +60,37 @@ class QTrainer:
             reward = torch.unsqueeze(reward, 0)
             done = (done, )
 
-        # 1: predicted Q values with current state
-        pred = self.model(state)
-
-        target = pred.clone()
+        targets= []
+        preds = []
         for idx in range(len(done)):
+        # 1: predicted Q values with current state
+            pred0 = self.models[0](state)
+            pred1 = self.models[1](state)
+            pred2 = self.models[2](state)
+            pred3 = self.models[3](state)
+
+            pred = torch.tensor([torch.argmax(pred0),torch.argmax(pred1),
+                                torch.argmax(pred2),torch.argmax(pred3)], dtype=torch.float32, requires_grad=True)
+            preds.append(torch.argmax(pred))
+            target = pred.clone()
             Q_new = reward[idx]
             if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+                for md in range(4):
+                    Q_new = reward[idx] + (self.gamma * torch.max(self.models[md](next_state[idx])) )
+                    
+                    target[md] = Q_new #torch.argmax(action[idx]).item()
+            else:
+                target[torch.argmax(action[idx]).item()] = Q_new
 
-            target[idx][torch.argmax(action[idx]).item()] = Q_new
+            targets.append(torch.argmax(target))
     
         # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
         # pred.clone()
         # preds[argmax(action)] = Q_new
         self.optimizer.zero_grad()
-        loss = self.criterion(target, pred)
+        loss = self.criterion(torch.tensor(targets, dtype=torch.float32, requires_grad=True), 
+                              torch.tensor(preds, dtype=torch.float32, requires_grad=True))
+        #loss.requires_grad = True
         loss.backward()
 
         self.optimizer.step()
